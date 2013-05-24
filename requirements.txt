@@ -1,0 +1,6 @@
+ipython
+ipdb
+html5lib
+docopt==0.6.1
+requests==1.2.0
+BeautifulSoup4==4.1.3
