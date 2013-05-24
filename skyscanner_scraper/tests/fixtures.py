@@ -6,7 +6,7 @@
 #  Copyright 2013 Antonin Lacombe. All rights reserved.
 # 
 import datetime
-from skyscraper.client import SkyscannerClient
+from skyscanner_scraper.client import SkyscannerClient
 
 class SkyScannerFixture(object):
     
@@ -27,7 +27,7 @@ class SkyScannerFixture(object):
         params.update(kwargs)
         return client._get_flights_page(**params)
     
-    def get_any_quotes(self, client=None, **kwargs):
+    def get_flights(self, client=None, **kwargs):
         """return some quotes"""
         client = client or SkyscannerClient()
         today = datetime.date.today()
@@ -38,5 +38,5 @@ class SkyScannerFixture(object):
             "return_date":today + datetime.timedelta(days=5)
         }
         params.update(kwargs)
-        return client.get_quotes(**params)
+        return client.get_flights(**params)
         

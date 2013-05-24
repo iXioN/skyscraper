@@ -8,7 +8,7 @@
 import re 
 import json
 import requests
-from skyscraper import parsers
+from skyscanner_scraper import parsers
 from bs4 import BeautifulSoup
 
 URL_DATE_FORMAT = "%y%m%d"
@@ -73,9 +73,9 @@ class SkyscannerClient(object):
         response = self.get(url_path, headers)
         return json.loads(response.content)
         
-    def get_quotes(self, short_from, short_to, depart_date, return_date):
+    def get_flights(self, short_from, short_to, depart_date, return_date):
         """
-        get all the informations to make a request and return a list of Quotes objects
+        get all the informations to make a request and return a list of flight objects
         """
         #get the flight page
         flight_page = self._get_flights_page(short_from, short_to, depart_date, return_date)
@@ -86,5 +86,6 @@ class SkyscannerClient(object):
         
         #instanciate a parser
         route_date_parser = parsers.RouteDateParser(route_date_dict)
-        quotes = route_date_parser.get_quotes()
+        flights_qs = route_date_parser.parse()
+        
         

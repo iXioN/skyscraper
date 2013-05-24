@@ -1,6 +1,9 @@
 ipython
 ipdb
 html5lib
+django==1.5.1
+django-extensions==1.1.1
+south==0.8.1
 docopt==0.6.1
 requests==1.2.0
 BeautifulSoup4==4.1.3

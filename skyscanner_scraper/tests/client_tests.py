@@ -2,14 +2,14 @@
 #  client_tests.py
 #  skyscraper
 #  
-#  Created by Antonin Lacombe on 2013-05-23.
+#  Created by Antonin Lacombe on 2013-05-24.
 #  Copyright 2013 Antonin Lacombe. All rights reserved.
 # 
 
-import unittest
+from django.test import TestCase
+from skyscanner_scraper.tests.fixtures import SkyScannerFixture
 
-from skyscraper.tests import fixtures
-class ClientTestCase(unittest.TestCase, fixtures.SkyScannerFixture):
+class ClientTestCase(TestCase, SkyScannerFixture):
     
     def test_get_skyscanner_page(self):
         """
@@ -49,5 +49,5 @@ class ClientTestCase(unittest.TestCase, fixtures.SkyScannerFixture):
             "short_from":"NTE",
             "short_to":"EDI",
         }
-        quotes = self.get_any_quotes(**params)
+        quotes = self.get_flights(**params)
         
