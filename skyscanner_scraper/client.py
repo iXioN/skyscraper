@@ -86,6 +86,6 @@ class SkyscannerClient(object):
         
         #instanciate a parser
         route_date_parser = parsers.RouteDateParser(route_date_dict)
-        flights_qs = route_date_parser.parse()
-        
+        flights = route_date_parser.parse()
+        return flights
         

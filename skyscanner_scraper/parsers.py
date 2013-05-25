@@ -66,8 +66,12 @@ class RouteDateParser(object):
         """return flights (inbound and outbound) object seen in feed"""
         object_set = set()
         Flight = models.get_model("skyscanner_scraper", "Flight")
-        
+                
         inbound_info_list = self.route_date_dict.get("InboundItineraryLegs", {})
+        #add a marker to recognize the inbound and outbound flight after the list merge
+        for inbound_itinerary_leg in inbound_info_list:
+            inbound_itinerary_leg["is_inbound"] = True
+        
         outbound_info_list = self.route_date_dict.get("OutboundItineraryLegs", {})
         #merge the lists
         inbound_info_list.extend(outbound_info_list)
@@ -84,32 +88,71 @@ class RouteDateParser(object):
                 "arrival_time":self._get_datetime(flight_info.get("ArrivalDateTime")),
                 "duration":flight_info.get("Duration"),
                 "stop_count":flight_info.get("StopsCount"),
+                "inbound_itinerary_leg":flight_info.get("is_inbound", False)
             }
             instance, created, merged = merge_or_create(
                Flight,
                id = flight_id,
                defaults = defaults,
             )
+            #handle the pricing_options
+            self.handle_pricing_options(flight_info.get("PricingOptions", list()), instance)
+            
             object_set.add(instance)
         return object_set
     
+    def handle_pricing_options(self, pricing_options_info_list, flight):
+        """ merge or create the each pricing options """
+        PricingOption = models.get_model("skyscanner_scraper", "PricingOption")
+        pricing_option_set = set()
+        for pricing_option_info in pricing_options_info_list:
+            #get the fisrt quote, it's a simplification
+            quote_id = pricing_option_info.get("QuoteIds", list())[0]
+            quote, created = models.get_model('skyscanner_scraper', 'Quote').objects.get_or_create(id=quote_id)
+            #get the opposing flight
+            opposing_flight_id = pricing_option_info.get("OpposingLegId")
+            opposing_flight = None
+            if opposing_flight_id:
+                opposing_flight, created = models.get_model('skyscanner_scraper', 'Flight').objects.get_or_create(id=opposing_flight_id)
+            
+            inbound_flight = None
+            outbound_flight = None            
+            if flight.inbound_itinerary_leg:
+                inbound_flight = flight
+                outbound_flight = opposing_flight
+            else:
+                inbound_flight = opposing_flight
+                outbound_flight = flight
+                
+            instance, created, merged = merge_or_create(
+               PricingOption,
+               quote = quote,
+               inbound_flight=inbound_flight,
+               outbound_flight=outbound_flight,
+               defaults = {},
+            )
+            pricing_option_set.add(instance)
+        return pricing_option_set
         
     def parse(self):
+        """
+        parse the routeDate feed from skyscanner,
+        return the flight order by their cheapest prices
+        """
         #handle stations
         self.handle_stations()
         #handle quotes
         self.handle_quotes()
         #handle flights
         flights = self.handle_flights()
-        
-    #     for json_object_name, object_cache in self.model_mapping.iteritems():
-    #         import ipdb
-    #         ipdb.set_trace()
-    # 
-    # def load_models(self):
-    #     """load all model"""
-    #     for object_name, object_cache in self.objects_mapping.iteritems():
-    #         for object_info in self.route_date_dict.get(object_name, {}):
-    #             object_id = object_info.get('Id')
-    #             if not object_id in object_cache:
-    #                 object_cache[object_id] = self.model_mapping[object_name](**object_info)
+        return flights
+
+        # from django.db.models import Q
+        # seen_flights_pk  = [f.pk for f in flights]
+        # pricing_option_qs = models.get_model('skyscanner_scraper', 'PricingOption').objects.all()
+        # pricing_option_qs = pricing_option_qs.filter(
+        #     Q(inbound_flight_id__in=seen_flights_pk) | Q( outbound_flight_id__in=seen_flights_pk)
+        # )
+        # #for return check the pricing option with inbound and outbound
+        # pricing_option_qs = pricing_option_qs.exclude(Q(inbound_flight__isnull=True) | Q(outbound_flight__isnull=True))
+        # pricing_option_qs = pricing_option_qs.order_by('quote__price')

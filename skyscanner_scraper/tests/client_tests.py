@@ -44,10 +44,11 @@ class ClientTestCase(TestCase, SkyScannerFixture):
         response = self.get_any_flights_page(client)
         session_key = client._get_session_key(response)
     
-    def test_get_quotes(self):
+    def test_get_flights(self):
         params = {
             "short_from":"NTE",
             "short_to":"EDI",
         }
-        quotes = self.get_flights(**params)
+        flights = self.get_flights(**params)
+        self.assertTrue(len(flights) > 0)   
         

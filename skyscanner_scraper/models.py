@@ -1,4 +1,4 @@
-# 
+# -*- coding: utf-8 -*-
 #  models.py
 #  skyscraper
 #  
@@ -24,12 +24,12 @@ class Quote(models.Model):
     request_time = models.DateTimeField()
     
     def __unicode__(self):
-        return u"%s %s" % (self.id, self.price)
+        return u"%s %s €" % (self.id, self.price)
         
                 
 class Flight(models.Model):
     id = models.CharField(primary_key=True, max_length=100)
-    inbound_itinerary_leg = models.BooleanField(default=True, )
+    inbound_itinerary_leg = models.BooleanField(default=True, db_index=True)
     origin_station = models.ForeignKey('skyscanner_scraper.Station', related_name="origin_flight_set", blank=True, null=True, default=None)
     destination_station = models.ForeignKey('skyscanner_scraper.Station', related_name="destination_flight_set", blank=True, null=True, default=None)
     departure_time = models.DateTimeField(blank=True, default=None, null=True)
@@ -42,10 +42,10 @@ class Flight(models.Model):
 
 
 class PricingOption(models.Model):
-    quotes_set = models.ManyToManyField('skyscanner_scraper.Quote', blank=True)
-    inbound_itinerary_leg = models.ForeignKey('skyscanner_scraper.Flight', related_name="inbound_priceoption_set",)
-    outbound_itinerary_leg = models.ForeignKey('skyscanner_scraper.Flight', related_name="outbound_priceoption_set",)
+    quote = models.ForeignKey('skyscanner_scraper.Quote', blank=True)
+    inbound_flight = models.ForeignKey('skyscanner_scraper.Flight', related_name="inbound_priceoption_set", blank=True, null=True, default=None)
+    outbound_flight = models.ForeignKey('skyscanner_scraper.Flight', related_name="outbound_priceoption_set", blank=True, null=True, default=None)
         
     def __unicode__(self):
-        return u"%s %s %s " % (self.quotes_set)
+        return u"%s %s %s " % (self.quote, self.outbound_flight, self.inbound_flight)
 
