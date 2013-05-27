@@ -36,8 +36,4 @@ setup(name='skyscraper',
     author_email='antonin.lacombe@gmail.com',
     url='https://github.com/iXioN/skyscraper.git',
     packages=['skyscraper', ],
-    entry_points={
-        'console_scripts': ['skyscraper = skyscraper.skyscraper:main'],
-    },
-    #test_suite='skyscraper.tests.suite',
     install_requires=requirements,)
