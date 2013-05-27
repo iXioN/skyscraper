@@ -7,6 +7,7 @@
 # 
 import datetime
 from django.db import models
+from django.utils import timezone
 from skyscanner_scraper.utils import merge_or_create
 
 
@@ -26,22 +27,44 @@ class RouteDateParser(object):
         
         station_info_list = self.route_date_dict.get("Stations", {})
         for station_info in station_info_list:
-            station_id = station_info["Id"]
+            station_code = station_info["Code"]
             defaults = {
                 "name":station_info.get("Name"),
-                "code":station_info.get("Code"),
+                "id":station_info.get("Id"),
             }
             station, created, merged = merge_or_create(
                Station,
-               id = station_id,
+               code = station_code,
                defaults = defaults,
             )
             stations_set.add(station)
         return stations_set
     
+    def handle_carriers(self):
+        """return the carriers seen in feed"""
+        object_set = set()
+        Carrier = models.get_model("skyscanner_scraper", "Carrier")
+        
+        carrier_info_list = self.route_date_dict.get("Carriers", {})
+        for carrier_info in carrier_info_list:
+            carrier_id = carrier_info["Id"]
+            defaults = {
+                "name":carrier_info.get("Name"),
+            }
+            instance, created, merged = merge_or_create(
+               Carrier,
+               id = carrier_id,
+               defaults = defaults,
+            )
+            object_set.add(instance)
+        return object_set
+    
     def _get_datetime(self, string_datetime):
         """get a string and return a datetime instance"""
-        return datetime.datetime.strptime(string_datetime, FEED_DATETIME_FORMAT)
+        if string_datetime:
+            non_aware_datetime = datetime.datetime.strptime(string_datetime, FEED_DATETIME_FORMAT)
+            return timezone.make_aware(non_aware_datetime, timezone.get_default_timezone())
+        return None
     
     def handle_agents(self):
         """return a list of the seen agents"""
@@ -70,7 +93,6 @@ class RouteDateParser(object):
         query_info = self.route_date_dict.get("Query", {})
         
         query_id = query_info['RequestId']
-
         #get the origin stations, can be multiple if the origin is city with many airport or a country
         origin_stations_id = query_info["OriginPlaceInfo"].get("AirportIds", list())
         origin_stations_qs = models.get_model("skyscanner_scraper", "Station").objects.all().filter(code__in=origin_stations_id)
@@ -78,9 +100,18 @@ class RouteDateParser(object):
         destination_stations_id = query_info["DestinationPlaceInfo"].get("AirportIds", list())
         destination_stations_qs = models.get_model("skyscanner_scraper", "Station").objects.all().filter(code__in=destination_stations_id)
         
+        outbound_date = self._get_datetime(query_info.get("OutboundDate")).date()
+        inbound_date = None
+        inbound_datetime = self._get_datetime(query_info.get("InboundDate"))
+        #outbound date can me None if the flight is a one way
+        if inbound_datetime:
+            inbound_date = inbound_datetime.date()
+            
+            
+            
         defaults = {
-            "inbound_date":self._get_datetime(query_info.get("InboundDate")).date(),
-            "outbound_date":self._get_datetime(query_info.get("OutboundDate")).date(),
+            "inbound_date":inbound_date,
+            "outbound_date":outbound_date,
         }
         query_flight, created, merged = merge_or_create(
            QueryFlight,
@@ -115,7 +146,8 @@ class RouteDateParser(object):
             defaults = {
                 "price":quote_info.get("Price"),
                 "request_time":self._get_datetime(quote_info.get("RequestDateTime")),
-                "agent":self._get_agent(quote_info.get("QuoteRequestId"))
+                "agent":self._get_agent(quote_info.get("QuoteRequestId")),
+                "is_return":quote_info.get("IsReturn"),
             }
             instance, created, merged = merge_or_create(
                Quote,
@@ -140,7 +172,7 @@ class RouteDateParser(object):
         inbound_info_list.extend(outbound_info_list)
         flights_info_list = inbound_info_list
         for flight_info in flights_info_list:
-            flight_id = flight_info["Id"]  
+            flight_id = flight_info["Id"]
             
             origin_station = models.get_model("skyscanner_scraper", "Station").objects.get_or_create(id=flight_info.get("OriginStation"))[0]
             destination_station = models.get_model("skyscanner_scraper", "Station").objects.get_or_create(id=flight_info.get("DestinationStation"))[0]
@@ -161,6 +193,9 @@ class RouteDateParser(object):
             )
             #handle the pricing_options
             self.handle_pricing_options(flight_info.get("PricingOptions", list()), instance)
+            #handle the carriers
+            carrier_pk_set = flight_info.get("MarketingCarrierIds")
+            instance.carrier_set = models.get_model('skyscanner_scraper', 'carrier').objects.all().filter(pk__in=carrier_pk_set)
             
             object_set.add(instance)
         return object_set
@@ -177,9 +212,11 @@ class RouteDateParser(object):
             opposing_flight_id = pricing_option_info.get("OpposingLegId")
             opposing_flight = None
             if opposing_flight_id:
-                opposing_flight, created = models.get_model('skyscanner_scraper', 'Flight').objects.get_or_create(
+                opposing_flight, created = models.get_model("skyscanner_scraper", "Flight").objects.get_or_create(
                     id=opposing_flight_id,
-                    query_flight_id=self.query_flight.request_id,
+                    defaults={
+                          "query_flight":self.query_flight,
+                    }
                 )
             
             inbound_flight = None
@@ -208,6 +245,8 @@ class RouteDateParser(object):
         """
         #handle stations
         self.handle_stations()
+        #handle carriers
+        self.handle_carriers()
         #handle agents
         self.handle_agents()
         #handle the query
@@ -215,15 +254,6 @@ class RouteDateParser(object):
         #handle quotes
         self.handle_quotes()
         #handle flights
-        flights = self.handle_flights()
-        return flights
-
-        # from django.db.models import Q
-        # seen_flights_pk  = [f.pk for f in flights]
-        # pricing_option_qs = models.get_model('skyscanner_scraper', 'PricingOption').objects.all()
-        # pricing_option_qs = pricing_option_qs.filter(
-        #     Q(inbound_flight_id__in=seen_flights_pk) | Q( outbound_flight_id__in=seen_flights_pk)
-        # )
-        # #for return check the pricing option with inbound and outbound
-        # pricing_option_qs = pricing_option_qs.exclude(Q(inbound_flight__isnull=True) | Q(outbound_flight__isnull=True))
-        # pricing_option_qs = pricing_option_qs.order_by('quote__price')
+        self.handle_flights()
+        flights = models.get_model('skyscanner_scraper', 'flight').objects.all().filter(query_flight=self.query_flight)
+        return self.query_flight, flights

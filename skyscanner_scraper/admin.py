@@ -8,3 +8,10 @@
 
 from django.contrib import admin
 from django.db import models
+
+
+class StationPriceAdmin(admin.ModelAdmin):
+   list_display = ('code', 'name',)
+   search_fields = ('name', 'code' )
+
+admin.site.register(models.get_model('skyscanner_scraper', 'Station'), StationPriceAdmin)

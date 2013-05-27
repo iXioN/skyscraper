@@ -50,5 +50,24 @@ class ClientTestCase(TestCase, SkyScannerFixture):
             "short_to":"EDI",
         }
         flights = self.get_flights(**params)
-        self.assertTrue(len(flights) > 0)   
+        self.assertTrue(len(flights) > 0)  
+    
+    def test_get_station_from_name(self):
+        """
+        given any city name
+        when I get the place with autosuggest query
+        then i get the right place
+        """
+        cities_codes = {
+                u"la rochelle":"LRH",
+                u"Nantes":"NTE",
+                u"edinburgh":"EDI",
+        }
+        client = self.any_client()
+        for city_name, place_code in cities_codes.iteritems():
+            station = None
+            stations = client.get_stations(city_name)
+            if len(stations) > 0:
+                station = stations[0]
+            self.assertEquals(station.code, place_code)
         

@@ -6,6 +6,7 @@
 #  Copyright 2013 Antonin Lacombe. All rights reserved.
 # 
 import datetime
+from django.utils import timezone
 from skyscanner_scraper.client import SkyscannerClient
 
 class SkyScannerFixture(object):
@@ -17,12 +18,12 @@ class SkyScannerFixture(object):
     def get_any_flights_page(self, client=None, **kwargs):
         """return a flights page"""
         client = client or SkyscannerClient()
-        today = datetime.date.today()
+        now = timezone.now()
         params = {
             "short_from":"NTE",
             "short_to":"EDI",
-            "depart_date":today,
-            "return_date":today + datetime.timedelta(days=5)
+            "depart_date":now,
+            "return_date":now + datetime.timedelta(days=5)
         }
         params.update(kwargs)
         return client._get_flights_page(**params)
@@ -38,5 +39,11 @@ class SkyScannerFixture(object):
             "return_date":today + datetime.timedelta(days=5)
         }
         params.update(kwargs)
-        return client.get_flights(**params)
+        query_flight, flights = client.get_flights(**params)
+        return flights
+    
+    def get_stations(self, client=None, city_name=""):
+        """retur a place instance from a city name using the autosuggest client methode"""
+        client = client or SkyscannerClient()
+        return client.get_stations(city_name)
         

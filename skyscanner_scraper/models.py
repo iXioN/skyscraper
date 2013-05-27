@@ -7,16 +7,40 @@
 # 
 
 from django.db import models
+from skyscanner_scraper.client import SkyscannerClient
 
+class StationManager(models.Manager):
+    def get_or_fetch(self, city_name):
+        """
+        get or fetch a station from a city name
+        if multiple stations are found, this function return the first
+        """
+        #try to get a place on db
+        stations = None
+        stations = models.get_model("skyscanner_scraper", "Station").objects.filter(name__iexact=city_name)
+        if len(stations) == 0:
+            #else fetch the results
+            client = SkyscannerClient()
+            stations = client.get_stations(city_name)
+        if len(stations) > 0:
+            #return the first
+            return stations[0]
+         
 class Station(models.Model):
-    id = models.IntegerField(primary_key=True)
-    code = models.CharField(max_length=80, db_index=True)
-    #city = models.ForeignKey("skyscanner_scraper.City")
-    name = models.CharField(max_length=80)
+    code = models.CharField(max_length=80, primary_key=True)
+    id = models.IntegerField(blank=True, null=True, default=None, db_index=True)
+    name = models.CharField(blank=True, null=True, default=None, max_length=80)
+    objects = StationManager()
     
     def __unicode__(self):
         return u"%s %s" % (self.code, self.name)
-      
+
+class Carrier(models.Model):
+    id = models.CharField(max_length=5, primary_key=True)
+    name = models.CharField(max_length=80)
+    
+    def __unicode__(self):
+        return u"%s" % (self.name)
         
 class Agent(models.Model):
     id = models.CharField(max_length=10, primary_key=True)
@@ -34,9 +58,9 @@ class Quote(models.Model):
     price = models.DecimalField(max_digits=8, decimal_places=2)
     request_time = models.DateTimeField()
     agent = models.ForeignKey('skyscanner_scraper.Agent')
-    
+    is_return = models.BooleanField(default=False, db_index=True)
     def __unicode__(self):
-        return u"%s %s €" % (self.id, self.price)
+        return u"%s € %s" % (self.price, self.agent)
 
 
 class PricingOption(models.Model):
@@ -52,7 +76,6 @@ class QueryFlight(models.Model):
     request_id  = models.CharField(max_length=80, primary_key=True)
     outbound_date = models.DateField()
     inbound_date = models.DateField(blank=True, default=None, null=True)
-    #cabin_class = models.CharField(max_length=80) 
     origin_station_set = models.ManyToManyField('skyscanner_scraper.Station', related_name="origin_queryflight_set")
     destination_station_set = models.ManyToManyField('skyscanner_scraper.Station', related_name="destination_queryflight_set")
     
@@ -72,7 +95,8 @@ class Flight(models.Model):
     duration = models.IntegerField(default=0)
     stop_count = models.IntegerField(default=0)
     
+    carrier_set = models.ManyToManyField('skyscanner_scraper.Carrier')
     query_flight = models.ForeignKey('skyscanner_scraper.QueryFlight')
 
     def __unicode__(self):
-        return u"%s %s %s" % (self.id, self.origin_station, self.destination_station)
+        return u"%s %s %s" % (self.origin_station, self.destination_station, self.carrier_set.all())
