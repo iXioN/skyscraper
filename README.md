@@ -70,3 +70,9 @@ search one way flights from Atlanta(US) to Berlin(GER) on 21th September 2013
     1869 € on Air France via Air France
     outbound : 16:50(ATL) - 10:50(TXL) stops 1 (CDG) 12h00
     ...
+
+Run the tests
+=============
+to run the unit tests
+
+    ./manage.py test skyscanner_scraper
