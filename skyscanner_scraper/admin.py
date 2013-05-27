@@ -10,8 +10,17 @@ from django.contrib import admin
 from django.db import models
 
 
-class StationPriceAdmin(admin.ModelAdmin):
+class StationAdmin(admin.ModelAdmin):
    list_display = ('code', 'name',)
    search_fields = ('name', 'code' )
+admin.site.register(models.get_model('skyscanner_scraper', 'Station'), StationAdmin)
 
-admin.site.register(models.get_model('skyscanner_scraper', 'Station'), StationPriceAdmin)
+class CarrierAdmin(admin.ModelAdmin):
+   list_display = ('id', 'name',)
+   search_fields = ('name', )
+admin.site.register(models.get_model('skyscanner_scraper', 'Carrier'), CarrierAdmin)
+
+class AgentPriceAdmin(admin.ModelAdmin):
+   list_display = ('name', 'default_url', 'booking_number', 'is_carrier',)
+   search_fields = ('name', )
+admin.site.register(models.get_model('skyscanner_scraper', 'Agent'), AgentPriceAdmin)

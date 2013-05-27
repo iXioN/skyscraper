@@ -191,6 +191,10 @@ class RouteDateParser(object):
                id = flight_id,
                defaults = defaults,
             )
+            
+            #handle the stop_station_set
+            station_pk_set = flight_info.get("StopIds", list())
+            instance.stop_station_set = models.get_model("skyscanner_scraper", "Station").objects.all().filter(id__in=station_pk_set)
             #handle the pricing_options
             self.handle_pricing_options(flight_info.get("PricingOptions", list()), instance)
             #handle the carriers

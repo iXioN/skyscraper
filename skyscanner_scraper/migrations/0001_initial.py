@@ -11,8 +11,8 @@ class Migration(SchemaMigration):
         # Adding model 'Station'
         db.create_table(u'skyscanner_scraper_station', (
             ('code', self.gf('django.db.models.fields.CharField')(max_length=80, primary_key=True)),
-            ('id', self.gf('django.db.models.fields.IntegerField')(db_index=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=80)),
+            ('id', self.gf('django.db.models.fields.IntegerField')(default=None, null=True, db_index=True, blank=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(default=None, max_length=80, null=True, blank=True)),
         ))
         db.send_create_signal(u'skyscanner_scraper', ['Station'])
 
@@ -39,6 +39,7 @@ class Migration(SchemaMigration):
             ('price', self.gf('django.db.models.fields.DecimalField')(max_digits=8, decimal_places=2)),
             ('request_time', self.gf('django.db.models.fields.DateTimeField')()),
             ('agent', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['skyscanner_scraper.Agent'])),
+            ('is_return', self.gf('django.db.models.fields.BooleanField')(default=False, db_index=True)),
         ))
         db.send_create_signal(u'skyscanner_scraper', ['Quote'])
 
@@ -91,6 +92,15 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'skyscanner_scraper', ['Flight'])
 
+        # Adding M2M table for field stop_station_set on 'Flight'
+        m2m_table_name = db.shorten_name(u'skyscanner_scraper_flight_stop_station_set')
+        db.create_table(m2m_table_name, (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('flight', models.ForeignKey(orm[u'skyscanner_scraper.flight'], null=False)),
+            ('station', models.ForeignKey(orm[u'skyscanner_scraper.station'], null=False))
+        ))
+        db.create_unique(m2m_table_name, ['flight_id', 'station_id'])
+
         # Adding M2M table for field carrier_set on 'Flight'
         m2m_table_name = db.shorten_name(u'skyscanner_scraper_flight_carrier_set')
         db.create_table(m2m_table_name, (
@@ -129,6 +139,9 @@ class Migration(SchemaMigration):
         # Deleting model 'Flight'
         db.delete_table(u'skyscanner_scraper_flight')
 
+        # Removing M2M table for field stop_station_set on 'Flight'
+        db.delete_table(db.shorten_name(u'skyscanner_scraper_flight_stop_station_set'))
+
         # Removing M2M table for field carrier_set on 'Flight'
         db.delete_table(db.shorten_name(u'skyscanner_scraper_flight_carrier_set'))
 
@@ -158,7 +171,8 @@ class Migration(SchemaMigration):
             'inbound_itinerary_leg': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'origin_station': ('django.db.models.fields.related.ForeignKey', [], {'default': 'None', 'related_name': "'origin_flight_set'", 'null': 'True', 'blank': 'True', 'to': u"orm['skyscanner_scraper.Station']"}),
             'query_flight': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['skyscanner_scraper.QueryFlight']"}),
-            'stop_count': ('django.db.models.fields.IntegerField', [], {'default': '0'})
+            'stop_count': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
+            'stop_station_set': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['skyscanner_scraper.Station']", 'symmetrical': 'False'})
         },
         u'skyscanner_scraper.pricingoption': {
             'Meta': {'object_name': 'PricingOption'},
@@ -179,14 +193,15 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Quote'},
             'agent': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['skyscanner_scraper.Agent']"}),
             'id': ('django.db.models.fields.IntegerField', [], {'primary_key': 'True'}),
+            'is_return': ('django.db.models.fields.BooleanField', [], {'default': 'False', 'db_index': 'True'}),
             'price': ('django.db.models.fields.DecimalField', [], {'max_digits': '8', 'decimal_places': '2'}),
             'request_time': ('django.db.models.fields.DateTimeField', [], {})
         },
         u'skyscanner_scraper.station': {
             'Meta': {'object_name': 'Station'},
             'code': ('django.db.models.fields.CharField', [], {'max_length': '80', 'primary_key': 'True'}),
-            'id': ('django.db.models.fields.IntegerField', [], {'db_index': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '80'})
+            'id': ('django.db.models.fields.IntegerField', [], {'default': 'None', 'null': 'True', 'db_index': 'True', 'blank': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'default': 'None', 'max_length': '80', 'null': 'True', 'blank': 'True'})
         }
     }
 

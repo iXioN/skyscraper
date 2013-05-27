@@ -94,6 +94,7 @@ class Flight(models.Model):
     arrival_time = models.DateTimeField(blank=True, default=None, null=True)
     duration = models.IntegerField(default=0)
     stop_count = models.IntegerField(default=0)
+    stop_station_set = models.ManyToManyField('skyscanner_scraper.Station')
     
     carrier_set = models.ManyToManyField('skyscanner_scraper.Carrier')
     query_flight = models.ForeignKey('skyscanner_scraper.QueryFlight')

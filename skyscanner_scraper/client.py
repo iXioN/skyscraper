@@ -111,7 +111,10 @@ class SkyscannerClient(object):
         #extract the session key
         session_key = self._get_session_key(flight_page)
         #then call the api to get a json
-        route_date_dict = self._get_routedate_v20(session_key)
+        try:
+            route_date_dict = self._get_routedate_v20(session_key)
+        except ValueError, e:
+            raise Exception('No result can be found')
         
         #instanciate a parser
         route_date_parser = parsers.RouteDateParser(route_date_dict)
