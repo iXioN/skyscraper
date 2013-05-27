@@ -41,7 +41,8 @@ Exemple
 
 here is some exemple of searchs:
     
-    #search flights from Nantes(FR) to Edinburg(UK) between the 28th May and 30th May 2013
+search flights from Nantes(FR) to Edinburg(UK) between the 28th May and 30th May 2013
+
     ./manage.py search -f nantes -t edinburg -d 05/28/13 -r 05/30/13
     ---------------------------------------------------------
     search on SkyScanner from Nantes(NTE) to Édimbourg(EDI)
@@ -55,8 +56,9 @@ here is some exemple of searchs:
     outbound : 12:50(NTE) - 17:05(EDI) stops 1 (MAN) 05h15
     inbound : 09:45(EDI) - 11:55(NTE) stops 1 (SOU) 01h10
     ....
-    
-    #search one way flights from Atlanta(US) to Berlin(GER) on 21th September 2013
+
+search one way flights from Atlanta(US) to Berlin(GER) on 21th September 2013
+
     ./manage.py search -f Atlanta -t Berlin -d 09/21/13
     ---------------------------------------------------------
     search on SkyScanner from Atlanta Hartsfield-Jackson ATL(ATL) to Berlin(BERL)
